@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GemmaBot — Minecraft AI Orchestrator</title>
+  <meta name="description" content="Real-time dashboard for controlling and monitoring the GemmaBot Minecraft AI agent — view telemetry, inventory, entity radar and agent reasoning.">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-main">
+        <div class="logo">
+          <div class="logo-icon-wrap">
+            <span class="logo-icon">⛏️</span>
+          </div>
+          <div class="logo-text">
+            <h1>GemmaBot</h1>
+            <span class="subtitle">Minecraft AI Orchestrator</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <!-- Thinking spinner (hidden by default) -->
+          <div class="thinking-indicator" id="thinking-indicator">
+            <div class="spinner"></div>
+            <span id="thinking-text">Thinking…</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <button class="stop-btn" id="stop-btn" title="Interrupt current AI action">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            Stop Bot
+          </button>
+          <div class="connection-status">
+            <div class="status-indicator disconnected" id="bot-status-dot"></div>
+            <span class="status-text" id="bot-status-text">Bot Offline</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+
+      <!-- Left Column: Status & Telemetry -->
+      <section class="left-column">
+
+        <!-- Stats Card -->
+        <div class="card status-card">
+          <h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            Stats &amp; Location
+          </h2>
+
+          <div class="stat-group">
+            <div class="stat-label">
+              <span>❤️ Health</span>
+              <span id="health-value">0/20</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar health-bar" id="health-bar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="stat-group">
+            <div class="stat-label">
+              <span>🍗 Hunger</span>
+              <span id="food-value">0/20</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar food-bar" id="food-bar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="stat-group">
+            <div class="stat-label">
+              <span>💧 Oxygen</span>
+              <span id="oxygen-val">20/20</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar oxygen-bar" id="oxygen-bar" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <div class="coordinates-grid">
+            <div class="coord-box">
+              <span class="coord-label">X</span>
+              <span class="coord-val" id="coord-x">—</span>
+            </div>
+            <div class="coord-box">
+              <span class="coord-label">Y</span>
+              <span class="coord-val" id="coord-y">—</span>
+            </div>
+            <div class="coord-box">
+              <span class="coord-label">Z</span>
+              <span class="coord-val" id="coord-z">—</span>
+            </div>
+          </div>
+
+          <div class="telemetry-item">
+            <span class="tel-lbl">🌤️ Time of Day:</span>
+            <span class="tel-val" id="game-time">—</span>
+          </div>
+        </div>
+
+        <!-- Mini-Map Canvas Card -->
+        <div class="card minimap-card">
+          <h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+            Movement Trail
+          </h2>
+          <canvas id="minimap-canvas" width="240" height="160"></canvas>
+          <div class="minimap-legend">
+            <span class="legend-dot bot-dot"></span><span>Bot</span>
+            <span class="legend-dot trail-dot"></span><span>Trail</span>
+          </div>
+        </div>
+
+        <!-- Inventory Card -->
+        <div class="card inventory-card">
+          <h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.87.18-1.33C18 2.54 16.04.6 13.67.6c-1.28 0-2.44.52-3.29 1.37L9 3.36 7.62 1.97C6.77 1.12 5.61.6 4.33.6 1.96.6 0 2.54 0 4.67c0 .46.11.89.18 1.33H0v14c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7.33-3.6c.74 0 1.33.59 1.33 1.27 0 .68-.6 1.27-1.33 1.27-.74 0-1.34-.59-1.34-1.27 0-.68.6-1.27 1.34-1.27zM4.33 2.4c.74 0 1.33.59 1.33 1.27 0 .68-.6 1.27-1.33 1.27-.74 0-1.33-.59-1.33-1.27C3 2.99 3.59 2.4 4.33 2.4z"/></svg>
+            Inventory
+          </h2>
+          <div class="inventory-grid" id="inventory-grid">
+            <div class="inventory-empty">Empty</div>
+          </div>
+        </div>
+
+        <!-- Nearby Entities Card -->
+        <div class="card entities-card">
+          <h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            Nearby Entities
+          </h2>
+          <div class="entity-list" id="entity-list">
+            <div class="entity-empty">No entities nearby</div>
+          </div>
+        </div>
+
+        <!-- Persistent Memory Card -->
+        <div class="card memory-card">
+          <h2>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            Persistent Memory
+          </h2>
+          <div class="memory-section">
+            <button class="memory-toggle" id="toggle-locations" aria-expanded="true">
+              <span>📍 Saved Locations</span>
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div id="memory-locations" class="memory-list">
+              <div class="memory-empty">No saved locations</div>
+            </div>
+          </div>
+          <div class="memory-section">
+            <button class="memory-toggle" id="toggle-plan" aria-expanded="true">
+              <span>📝 Active Plan</span>
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div id="memory-plan" class="memory-list">
+              <div class="memory-empty">No active plan</div>
+            </div>
+          </div>
+          <div class="memory-section">
+            <button class="memory-toggle" id="toggle-facts" aria-expanded="true">
+              <span>💡 Facts &amp; Context</span>
+              <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+            <div id="memory-facts" class="memory-list">
+              <div class="memory-empty">No general facts</div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Agent Console -->
+      <section class="right-column">
+        <div class="card console-card">
+          <div class="console-header">
+            <h2>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h2v2H6zm0 4h8v2H6zm10 0h2v2h-2zm-6-4h8v2h-8z"/></svg>
+              Agent Execution Terminal
+            </h2>
+            <button class="clear-btn" id="clear-btn" title="Clear console">Clear</button>
+          </div>
+
+          <!-- Terminal Output Feed -->
+          <div class="console-feed" id="console-feed">
+            <div class="console-system-msg">
+              <span class="log-ts">[00:00:00]</span>
+              Welcome to GemmaBot Agent Terminal. Enter a command below to prompt the AI agent.
+            </div>
+          </div>
+
+          <!-- Console Input -->
+          <form class="console-input-area" id="console-form">
+            <input type="text" id="console-input" placeholder="Type a task (e.g. 'mine 10 iron ore and smelt them')…" required autocomplete="off">
+            <button type="submit" id="send-btn">
+              <span>Send</span>
+              <svg viewBox="0 0 24 24" width="18" height="18">
+                <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+            </button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // ─── WebSocket Setup ───────────────────────────────────────────────────────
+    const socket = new WebSocket('ws://' + window.location.hostname + ':8081');
+
+    // ─── Element Refs ──────────────────────────────────────────────────────────
+    const statusDot    = document.getElementById('bot-status-dot');
+    const statusText   = document.getElementById('bot-status-text');
+    const consoleFeed  = document.getElementById('console-feed');
+    const consoleForm  = document.getElementById('console-form');
+    const consoleInput = document.getElementById('console-input');
+    const stopBtn      = document.getElementById('stop-btn');
+    const clearBtn     = document.getElementById('clear-btn');
+    const thinkingInd  = document.getElementById('thinking-indicator');
+    const thinkingText = document.getElementById('thinking-text');
+
+    const healthVal    = document.getElementById('health-value');
+    const healthBar    = document.getElementById('health-bar');
+    const foodVal      = document.getElementById('food-value');
+    const foodBar      = document.getElementById('food-bar');
+    const oxygenVal    = document.getElementById('oxygen-val');
+    const oxygenBar    = document.getElementById('oxygen-bar');
+    const coordX       = document.getElementById('coord-x');
+    const coordY       = document.getElementById('coord-y');
+    const coordZ       = document.getElementById('coord-z');
+    const gameTime     = document.getElementById('game-time');
+    const inventoryGrid = document.getElementById('inventory-grid');
+    const entityList   = document.getElementById('entity-list');
+
+    const memoryLocations = document.getElementById('memory-locations');
+    const memoryPlan   = document.getElementById('memory-plan');
+    const memoryFacts  = document.getElementById('memory-facts');
+
+    // ─── Mini-Map ──────────────────────────────────────────────────────────────
+    const canvas  = document.getElementById('minimap-canvas');
+    const ctx     = canvas.getContext('2d');
+    const TRAIL_MAX = 120;
+    let posTrail  = [];    // [{x, z}]
+    let mapCenter = null;  // {x, z}
+
+    function drawMiniMap() {
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      // Background
+      ctx.fillStyle = 'rgba(10, 14, 26, 0.85)';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid lines
+      ctx.strokeStyle = 'rgba(100, 120, 200, 0.08)';
+      ctx.lineWidth = 1;
+      const gridSize = 20;
+      for (let x = 0; x < W; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      }
+      for (let y = 0; y < H; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+
+      if (posTrail.length === 0) return;
+
+      const latest = posTrail[posTrail.length - 1];
+      const scale  = 2.5; // 1 block = 2.5px
+      const cx = W / 2;
+      const cy = H / 2;
+
+      function worldToCanvas(wx, wz) {
+        return {
+          px: cx + (wx - latest.x) * scale,
+          py: cy + (wz - latest.z) * scale
+        };
+      }
+
+      // Draw trail
+      if (posTrail.length > 1) {
+        ctx.beginPath();
+        const p0 = worldToCanvas(posTrail[0].x, posTrail[0].z);
+        ctx.moveTo(p0.px, p0.py);
+        for (let i = 1; i < posTrail.length; i++) {
+          const alpha = 0.1 + 0.7 * (i / posTrail.length);
+          const p = worldToCanvas(posTrail[i].x, posTrail[i].z);
+          ctx.strokeStyle = `rgba(99, 179, 255, ${alpha})`;
+          ctx.lineWidth = 1.5;
+          ctx.lineTo(p.px, p.py);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(p.px, p.py);
+        }
+      }
+
+      // Draw bot position (glowing dot)
+      const botP = worldToCanvas(latest.x, latest.z);
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#4ade80';
+      ctx.beginPath();
+      ctx.arc(botP.px, botP.py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#4ade80';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Coordinates label
+      ctx.fillStyle = 'rgba(160, 200, 255, 0.6)';
+      ctx.font = '10px Fira Code, monospace';
+      ctx.fillText(`${Math.round(latest.x)}, ${Math.round(latest.z)}`, 6, H - 6);
+    }
+
+    // ─── Timestamp helper ──────────────────────────────────────────────────────
+    function nowTS() {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `[${hh}:${mm}:${ss}]`;
+    }
+
+    // ─── Socket Events ─────────────────────────────────────────────────────────
+    socket.onopen = () => {
+      appendSystemMessage('System: Connected to Orchestrator Server.');
+    };
+
+    socket.onclose = () => {
+      appendSystemMessage('System: Lost connection to Orchestrator Server.');
+      statusDot.className = 'status-indicator disconnected';
+      statusText.innerText = 'Server Offline';
+      setThinking(false);
+    };
+
+    socket.onerror = () => {
+      appendSystemMessage('System: WebSocket error — check if the orchestrator is running.');
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'BOT_STATUS') {
+        if (data.status === 'CONNECTED') {
+          statusDot.className = 'status-indicator connected';
+          statusText.innerText = 'Bot Connected';
+          appendSystemMessage('System: Bot connected to Minecraft server.');
+        } else {
+          statusDot.className = 'status-indicator disconnected';
+          statusText.innerText = 'Bot Offline';
+          appendSystemMessage('System: Bot disconnected from Minecraft server.');
+        }
+      }
+
+      if (data.type === 'STATE') {
+        updateTelemetry(data);
+      }
+
+      if (data.type === 'CHAT') {
+        appendChatBubble(data.sender, data.content);
+        setThinking(false);
+      }
+
+      if (data.type === 'LOG') {
+        appendAgentLog(data.log_type, data.content);
+        // Show thinking spinner when agent is reasoning
+        if (data.log_type === 'status' && data.content.startsWith('Thinking')) {
+          setThinking(true, data.content);
+        } else if (data.log_type === 'tool_result' || data.log_type === 'error') {
+          setThinking(false);
+        }
+      }
+
+      if (data.type === 'MEMORY_UPDATE') {
+        updateMemoryUI(data.memory);
+      }
+
+      if (data.type === 'DISCOVERY') {
+        appendSystemMessage(`🔍 Discovery: ${data.name} found at (${data.position?.x ?? '?'}, ${data.position?.y ?? '?'}, ${data.position?.z ?? '?'})`);
+      }
+    };
+
+    // ─── Stop Button ───────────────────────────────────────────────────────────
+    stopBtn.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'STOP_COMMAND' }));
+      appendSystemMessage('🛑 Stop command sent.');
+      setThinking(false);
+    });
+
+    // ─── Clear Button ──────────────────────────────────────────────────────────
+    clearBtn.addEventListener('click', () => {
+      consoleFeed.innerHTML = '';
+      appendSystemMessage('Console cleared.');
+    });
+
+    // ─── Send Command ──────────────────────────────────────────────────────────
+    consoleForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const command = consoleInput.value.trim();
+      if (!command) return;
+      socket.send(JSON.stringify({ type: 'USER_COMMAND', command: command }));
+      consoleInput.value = '';
+    });
+
+    // ─── Thinking Indicator ────────────────────────────────────────────────────
+    function setThinking(active, label = 'Thinking…') {
+      if (active) {
+        thinkingInd.classList.add('active');
+        thinkingText.innerText = label;
+      } else {
+        thinkingInd.classList.remove('active');
+      }
+    }
+
+    // ─── Telemetry Update ──────────────────────────────────────────────────────
+    function updateTelemetry(state) {
+      if (state.pos) {
+        coordX.innerText = state.pos.x;
+        coordY.innerText = state.pos.y;
+        coordZ.innerText = state.pos.z;
+
+        // Update mini-map trail
+        const pt = { x: state.pos.x, z: state.pos.z };
+        if (posTrail.length === 0 || posTrail[posTrail.length - 1].x !== pt.x || posTrail[posTrail.length - 1].z !== pt.z) {
+          posTrail.push(pt);
+          if (posTrail.length > TRAIL_MAX) posTrail.shift();
+          drawMiniMap();
+        }
+      }
+
+      if (state.health !== undefined) {
+        healthVal.innerText = `${state.health}/20`;
+        healthBar.style.width = `${(state.health / 20) * 100}%`;
+        healthBar.style.background = state.health <= 6
+          ? 'linear-gradient(90deg, #ef4444, #f87171)'
+          : state.health <= 12
+          ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+          : 'linear-gradient(90deg, #22c55e, #4ade80)';
+      }
+
+      if (state.food !== undefined) {
+        foodVal.innerText = `${state.food}/20`;
+        foodBar.style.width = `${(state.food / 20) * 100}%`;
+        foodBar.style.background = state.food <= 6
+          ? 'linear-gradient(90deg, #ef4444, #f87171)'
+          : 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+      }
+
+      if (state.oxygen !== undefined) {
+        oxygenVal.innerText = `${state.oxygen}/20`;
+        oxygenBar.style.width = `${(state.oxygen / 20) * 100}%`;
+      }
+
+      if (state.time !== undefined) {
+        const timeVal = state.time % 24000;
+        let timeIcon = '🌙';
+        let timeLabel = 'Midnight';
+        if (timeVal < 1000)       { timeIcon = '🌅'; timeLabel = 'Sunrise'; }
+        else if (timeVal < 6000)  { timeIcon = '☀️';  timeLabel = 'Morning'; }
+        else if (timeVal < 12000) { timeIcon = '🌤️'; timeLabel = 'Noon'; }
+        else if (timeVal < 13000) { timeIcon = '🌇'; timeLabel = 'Sunset'; }
+        else if (timeVal < 18000) { timeIcon = '🌙'; timeLabel = 'Night'; }
+        gameTime.innerText = `${timeIcon} ${timeLabel} (${timeVal})`;
+      }
+
+      // ── Inventory ────────────────────────────────────────────────────────────
+      if (state.inventory) {
+        inventoryGrid.innerHTML = '';
+        if (state.inventory.length === 0) {
+          inventoryGrid.innerHTML = '<div class="inventory-empty">Empty</div>';
+        } else {
+          state.inventory.forEach(item => {
+            const slot = document.createElement('div');
+            slot.className = 'inventory-slot';
+            slot.title = item.name;
+            const emoji = getItemEmoji(item.name);
+            slot.innerHTML = `
+              <div class="item-emoji">${emoji}</div>
+              <div class="item-name">${item.name.replace(/_/g, ' ')}</div>
+              <div class="item-count">×${item.count}</div>
+            `;
+            inventoryGrid.appendChild(slot);
+          });
+        }
+      }
+
+      // ── Entities ─────────────────────────────────────────────────────────────
+      if (state.entities) {
+        entityList.innerHTML = '';
+        if (state.entities.length === 0) {
+          entityList.innerHTML = '<div class="entity-empty">No entities nearby</div>';
+        } else {
+          const HOSTILES = ['zombie', 'skeleton', 'spider', 'creeper', 'witch', 'slime', 'enderman', 'drowned', 'husk', 'pillager'];
+          state.entities.forEach(entity => {
+            const ent = document.createElement('div');
+            const isHostile = HOSTILES.some(h => (entity.name || '').toLowerCase().includes(h));
+            const isPlayer = entity.type === 'player';
+            let cls = 'entity-item entity-passive';
+            if (isHostile) cls = 'entity-item entity-hostile';
+            else if (isPlayer) cls = 'entity-item entity-player';
+            ent.className = cls;
+            const icon = isHostile ? '☠️' : isPlayer ? '👤' : '🐾';
+            ent.innerHTML = `
+              <span class="entity-icon">${icon}</span>
+              <span class="entity-name">${(entity.name || 'unknown').replace(/_/g, ' ')}</span>
+              <span class="entity-dist">${entity.distance}m</span>
+            `;
+            entityList.appendChild(ent);
+          });
+        }
+      }
+    }
+
+    // ─── Item Emoji Map ────────────────────────────────────────────────────────
+    function getItemEmoji(name) {
+      const n = name.toLowerCase();
+      if (n.includes('sword'))       return '⚔️';
+      if (n.includes('axe'))         return '🪓';
+      if (n.includes('pickaxe'))     return '⛏️';
+      if (n.includes('shovel'))      return '🪣';
+      if (n.includes('bow'))         return '🏹';
+      if (n.includes('helmet'))      return '🪖';
+      if (n.includes('chestplate'))  return '🦺';
+      if (n.includes('leggings'))    return '👖';
+      if (n.includes('boots'))       return '👢';
+      if (n.includes('apple') || n.includes('bread') || n.includes('meat') || n.includes('beef') || n.includes('chicken') || n.includes('pork')) return '🍖';
+      if (n.includes('carrot'))      return '🥕';
+      if (n.includes('potato'))      return '🥔';
+      if (n.includes('fish'))        return '🐟';
+      if (n.includes('wood') || n.includes('log') || n.includes('plank')) return '🪵';
+      if (n.includes('stone') || n.includes('cobble')) return '🪨';
+      if (n.includes('coal'))        return '🖤';
+      if (n.includes('iron'))        return '⚙️';
+      if (n.includes('gold'))        return '🌕';
+      if (n.includes('diamond'))     return '💎';
+      if (n.includes('emerald'))     return '💚';
+      if (n.includes('arrow'))       return '🏹';
+      if (n.includes('torch'))       return '🔥';
+      if (n.includes('chest'))       return '📦';
+      if (n.includes('crafting'))    return '🔨';
+      if (n.includes('furnace'))     return '🔥';
+      if (n.includes('book'))        return '📖';
+      if (n.includes('wool'))        return '🧶';
+      if (n.includes('sand'))        return '⛱️';
+      if (n.includes('dirt') || n.includes('grass')) return '🌱';
+      return '📦';
+    }
+
+    // ─── Console Helpers ───────────────────────────────────────────────────────
+    function appendSystemMessage(msg) {
+      const div = document.createElement('div');
+      div.className = 'console-system-msg';
+      div.innerHTML = `<span class="log-ts">${nowTS()}</span> ${escapeHtml(msg)}`;
+      consoleFeed.appendChild(div);
+      scrollToBottom();
+    }
+
+    function appendChatBubble(sender, message) {
+      const bubble = document.createElement('div');
+      const isUser = sender === 'user' || sender.startsWith('user (');
+      bubble.className = `chat-bubble ${isUser ? 'user-bubble' : 'bot-bubble'}`;
+
+      const header = document.createElement('div');
+      header.className = 'chat-header';
+      header.innerHTML = `${isUser ? '👤' : '🤖'} <strong>${escapeHtml(sender)}</strong> <span class="log-ts">${nowTS()}</span>`;
+
+      const content = document.createElement('div');
+      content.className = 'chat-content';
+      content.innerText = message;
+
+      bubble.appendChild(header);
+      bubble.appendChild(content);
+      consoleFeed.appendChild(bubble);
+      scrollToBottom();
+    }
+
+    function appendAgentLog(logType, content) {
+      const logBox = document.createElement('div');
+      logBox.className = `log-box log-${logType}`;
+
+      const ICONS = {
+        thought:     { icon: '🧠', title: 'Thought Process' },
+        tool_call:   { icon: '🛠️', title: 'Executing Action' },
+        tool_result: { icon: '📊', title: 'Action Result' },
+        status:      { icon: '⚡', title: 'Status' },
+        error:       { icon: '⚠️', title: 'Error' },
+      };
+      const { icon, title } = ICONS[logType] || { icon: '⚙️', title: 'Log' };
+
+      const header = document.createElement('div');
+      header.className = 'log-header';
+      header.innerHTML = `<span>${icon}</span> <span class="log-title-text">${title}</span> <span class="log-ts">${nowTS()}</span>`;
+
+      const body = document.createElement('div');
+      body.className = 'log-body';
+      body.innerText = content;
+
+      logBox.appendChild(header);
+      logBox.appendChild(body);
+      consoleFeed.appendChild(logBox);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      consoleFeed.scrollTop = consoleFeed.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // ─── Memory UI ─────────────────────────────────────────────────────────────
+    function updateMemoryUI(memory) {
+      // Locations
+      if (memory.locations && Object.keys(memory.locations).length > 0) {
+        memoryLocations.innerHTML = '';
+        for (const [name, coords] of Object.entries(memory.locations)) {
+          const div = document.createElement('div');
+          div.className = 'memory-item-row';
+          const coordStr = (typeof coords === 'object' && coords !== null && 'x' in coords)
+            ? `${coords.x}, ${coords.y}, ${coords.z}`
+            : String(coords);
+          div.innerHTML = `<span class="memory-item-key">${escapeHtml(name.replace(/_/g, ' '))}:</span> <span class="memory-item-val">${escapeHtml(coordStr)}</span>`;
+          memoryLocations.appendChild(div);
+        }
+      } else {
+        memoryLocations.innerHTML = '<div class="memory-empty">No saved locations</div>';
+      }
+
+      // Active Plan
+      if (memory.active_plan && memory.active_plan.length > 0) {
+        memoryPlan.innerHTML = '';
+        memory.active_plan.forEach((subgoal, index) => {
+          const div = document.createElement('div');
+          div.className = 'memory-plan-item';
+          div.innerHTML = `<span class="plan-num">${index + 1}.</span> <span class="plan-text">${escapeHtml(String(subgoal))}</span>`;
+          memoryPlan.appendChild(div);
+        });
+      } else {
+        memoryPlan.innerHTML = '<div class="memory-empty">No active plan</div>';
+      }
+
+      // Facts
+      if (memory.facts && Object.keys(memory.facts).length > 0) {
+        memoryFacts.innerHTML = '';
+        for (const [key, val] of Object.entries(memory.facts)) {
+          const div = document.createElement('div');
+          div.className = 'memory-item-row';
+          div.innerHTML = `<span class="memory-item-key">${escapeHtml(key.replace(/_/g, ' '))}:</span> <span class="memory-item-val">${escapeHtml(String(val))}</span>`;
+          memoryFacts.appendChild(div);
+        }
+      } else {
+        memoryFacts.innerHTML = '<div class="memory-empty">No general facts</div>';
+      }
+    }
+
+    // ─── Collapsible Memory Sections ───────────────────────────────────────────
+    function setupToggle(btnId, listId) {
+      const btn  = document.getElementById(btnId);
+      const list = document.getElementById(listId);
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        list.style.maxHeight = expanded ? '0' : '';
+        list.style.overflow  = expanded ? 'hidden' : '';
+        btn.querySelector('.chevron').style.transform = expanded ? 'rotate(-90deg)' : '';
+      });
+    }
+    setupToggle('toggle-locations', 'memory-locations');
+    setupToggle('toggle-plan',      'memory-plan');
+    setupToggle('toggle-facts',     'memory-facts');
+
+    // Initial mini-map draw
+    drawMiniMap();
+  </script>
+</body>
+</html>
