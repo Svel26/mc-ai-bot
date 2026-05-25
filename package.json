@@ -1,0 +1,21 @@
+{
+  "name": "mc-ai-bot",
+  "version": "1.0.0",
+  "description": "Headless Mineflayer bot controller with Baritone integration and Python WebSocket orchestration.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "start:bot": "node bot.js",
+    "start:orchestrator": "python orchestrator.py"
+  },
+  "dependencies": {
+    "dotenv": "^16.1.4",
+    "mineflayer": "^4.37.1",
+    "@miner-org/mineflayer-baritone": "^1.0.0",
+    "vec3": "^0.1.0",
+    "ws": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
