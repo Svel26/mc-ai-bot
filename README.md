@@ -2,6 +2,8 @@
 
 A lightweight headless Minecraft bot controller using Mineflayer and a Python orchestration layer.
 
+Note: this is just a quick hobby/test project, do not expect good AI execution or future support/fixes
+
 ## Setup
 
 1. Install Node dependencies:
